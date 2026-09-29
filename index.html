@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>便利貼看板</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+        }
+        /* 自訂便利貼陰影與動畫 */
+        .sticky-note {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .sticky-note:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+        }
+        textarea {
+            resize: none;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-700 flex flex-col">
+
+    <!-- 頂部導覽列 -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-amber-400 text-slate-800 p-2.5 rounded-xl shadow-sm flex items-center justify-center">
+                    <i class="fa-solid fa-note-sticky text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight text-slate-800">便利貼看板</h1>
+                    <p class="text-xs text-slate-500">簡單、直覺的備忘錄管理工具</p>
+                </div>
+            </div>
+
+            <!-- 控制按鈕區 -->
+            <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
+                <div class="relative flex-1 sm:flex-initial">
+                    <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                    <input type="text" id="searchInput" placeholder="搜尋便利貼..." class="w-full sm:w-64 bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition">
+                </div>
+                <button onclick="openModal()" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm flex items-center gap-2 transition active:scale-95 whitespace-nowrap">
+                    <i class="fa-solid fa-plus"></i> 新增便利貼
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主要內容區 -->
+    <main class="max-w-6xl mx-auto px-4 py-8 flex-1 w-full">
+        <!-- 便利貼網格 -->
+        <div id="notesContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <!-- 動態插入便利貼 -->
+        </div>
+
+        <!-- 空狀態提示 -->
+        <div id="emptyState" class="hidden flex-col items-center justify-center py-20 text-center">
+            <div class="w-20 h-20 bg-slate-200 text-slate-400 rounded-full flex items-center justify-center text-3xl mb-4">
+                <i class="fa-regular fa-clipboard"></i>
+            </div>
+            <h2 class="text-lg font-semibold text-slate-600 mb-1">目前沒有便利貼</h2>
+            <p class="text-sm text-slate-400 mb-6">點擊上方「新增便利貼」按鈕來建立您的第一張便條吧！</p>
+            <button onclick="openModal()" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition">
+                立即新增
+            </button>
+        </div>
+    </main>
+
+    <!-- 頁尾 -->
+    <footer class="py-6 text-center text-xs text-slate-400 border-t border-slate-200 bg-white">
+        &copy; 2026 便利貼看板. All rights reserved. LocalStorage 支援。
+    </footer>
+
+    <!-- 新增 / 編輯便利貼 Modal -->
+    <div id="noteModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden transform scale-95 transition-transform duration-300" id="modalCard">
+            <!-- Modal 標題 -->
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h3 id="modalTitle" class="font-bold text-slate-800">新增便利貼</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 w-8 h-8 rounded-full flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Modal 表單 -->
+            <div class="p-6 space-y-4">
+                <input type="hidden" id="noteId">
+                
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">選擇顏色</label>
+                    <div class="flex gap-3" id="colorPicker">
+                        <label class="cursor-pointer">
+                            <input type="radio" name="noteColor" value="yellow" class="peer sr-only" checked>
+                            <div class="w-8 h-8 rounded-full bg-amber-200 border-2 border-transparent peer-checked:border-amber-500 peer-checked:scale-110 shadow-sm transition"></div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="noteColor" value="pink" class="peer sr-only">
+                            <div class="w-8 h-8 rounded-full bg-rose-200 border-2 border-transparent peer-checked:border-rose-500 peer-checked:scale-110 shadow-sm transition"></div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="noteColor" value="green" class="peer sr-only">
+                            <div class="w-8 h-8 rounded-full bg-emerald-200 border-2 border-transparent peer-checked:border-emerald-500 peer-checked:scale-110 shadow-sm transition"></div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="noteColor" value="blue" class="peer sr-only">
+                            <div class="w-8 h-8 rounded-full bg-sky-200 border-2 border-transparent peer-checked:border-sky-500 peer-checked:scale-110 shadow-sm transition"></div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="noteColor" value="purple" class="peer sr-only">
+                            <div class="w-8 h-8 rounded-full bg-purple-200 border-2 border-transparent peer-checked:border-purple-500 peer-checked:scale-110 shadow-sm transition"></div>
+                        </label>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="noteContent" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">內容</label>
+                    <textarea id="noteContent" rows="5" placeholder="輸入便利貼內容..." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition"></textarea>
+                </div>
+            </div>
+
+            <!-- Modal 按鈕 -->
+            <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+                <button onclick="closeModal()" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-200 transition">取消</button>
+                <button onclick="saveNote()" class="bg-amber-500 hover:bg-amber-600 text-white px-5 py-2 rounded-lg text-sm font-medium shadow-sm transition">儲存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 自訂通知 Modal (替代原生 alert/confirm) -->
+    <div id="customModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden p-6 text-center transform scale-95 transition-transform duration-300" id="customModalCard">
+            <div id="customModalIcon" class="w-12 h-12 rounded-full mx-auto flex items-center justify-center text-xl mb-3"></div>
+            <h3 id="customModalTitle" class="font-bold text-slate-800 text-base mb-1">提示訊息</h3>
+            <p id="customModalMessage" class="text-sm text-slate-500 mb-6"></p>
+            <div id="customModalButtons" class="flex justify-center gap-3">
+                <!-- 動態注入按鈕 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript 邏輯 -->
+    <script>
+        // 色彩對應設定
+        const colorThemes = {
+            yellow: { bg: 'bg-amber-100', border: 'border-amber-200', text: 'text-amber-900', date: 'text-amber-700/60', hover: 'hover:bg-amber-200/50' },
+            pink:   { bg: 'bg-rose-100',   border: 'border-rose-200',   text: 'text-rose-900',   date: 'text-rose-700/60',   hover: 'hover:bg-rose-200/50' },
+            green:  { bg: 'bg-emerald-100',border: 'border-emerald-200',text: 'text-emerald-900',date: 'text-emerald-700/60',hover: 'hover:bg-emerald-200/50' },
+            blue:   { bg: 'bg-sky-100',    border: 'border-sky-200',    text: 'text-sky-900',    date: 'text-sky-700/60',    hover: 'hover:bg-sky-200/50' },
+            purple: { bg: 'bg-purple-100', border: 'border-purple-200', text: 'text-purple-900', date: 'text-purple-700/60', hover: 'hover:bg-purple-200/50' }
+        };
+
+        // 從 LocalStorage 載入資料
+        let notes = JSON.parse(localStorage.getItem('sticky_notes')) || [];
+
+        // 初始化渲染
+        document.addEventListener('DOMContentLoaded', () => {
+            renderNotes();
+
+            // 搜尋框事件
+            document.getElementById('searchInput').addEventListener('input', (e) => {
+                renderNotes(e.target.value);
+            });
+        });
+
+        // 渲染便利貼列表
+        function renderNotes(searchQuery = '') {
+            const container = document.getElementById('notesContainer');
+            const emptyState = document.getElementById('emptyState');
+            container.innerHTML = '';
+
+            // 過濾搜尋結果
+            const filteredNotes = notes.filter(note => 
+                note.content.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+
+            if (filteredNotes.length === 0) {
+                emptyState.classList.remove('hidden');
+                emptyState.classList.add('flex');
+                return;
+            } else {
+                emptyState.classList.add('hidden');
+                emptyState.classList.remove('flex');
+            }
+
+            // 依建立時間倒序排序（最新的在最前面）
+            const sortedNotes = [...filteredNotes].sort((a, b) => b.createdAt - a.createdAt);
+
+            sortedNotes.forEach(note => {
+                const theme = colorThemes[note.color] || colorThemes.yellow;
+                
+                const noteCard = document.createElement('div');
+                noteCard.className = `sticky-note ${theme.bg} ${theme.border} border rounded-2xl p-5 flex flex-col justify-between relative group min-h-[200px]`;
+                
+                // 格式化日期
+                const dateStr = new Date(note.createdAt).toLocaleString('zh-TW', {
+                    month: 'numeric',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                noteCard.innerHTML = `
+                    <div class="flex justify-between items-start mb-3">
+                        <span class="text-xs font-medium ${theme.date}">${dateStr}</span>
+                        <div class="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition">
+                            <button onclick="editNote('${note.id}')" title="編輯" class="w-7 h-7 rounded-full flex items-center justify-center text-slate-600 hover:bg-black/5 transition">
+                                <i class="fa-solid fa-pen text-xs"></i>
+                            </button>
+                            <button onclick="deleteNote('${note.id}')" title="刪除" class="w-7 h-7 rounded-full flex items-center justify-center text-rose-600 hover:bg-rose-500/10 transition">
+                                <i class="fa-solid fa-trash text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="${theme.text} text-sm whitespace-pre-wrap break-words flex-1 mb-4 leading-relaxed">${escapeHtml(note.content)}</div>
+                `;
+
+                container.appendChild(noteCard);
+            });
+        }
+
+        // 開啟 Modal (新增或編輯)
+        function openModal(id = null) {
+            const modal = document.getElementById('noteModal');
+            const modalCard = document.getElementById('modalCard');
+            const modalTitle = document.getElementById('modalTitle');
+            const noteIdInput = document.getElementById('noteId');
+            const noteContentInput = document.getElementById('noteContent');
+
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modalCard.classList.remove('scale-95');
+                modalCard.classList.add('scale-100');
+            }, 10);
+
+            if (id) {
+                // 編輯模式
+                modalTitle.textContent = '編輯便利貼';
+                const note = notes.find(n => n.id === id);
+                if (note) {
+                    noteIdInput.value = note.id;
+                    noteContentInput.value = note.content;
+                    // 設定對應顏色選項
+                    const colorRadio = document.querySelector(`input[name="noteColor"][value="${note.color}"]`);
+                    if (colorRadio) colorRadio.checked = true;
+                }
+            } else {
+                // 新增模式
+                modalTitle.textContent = '新增便利貼';
+                noteIdInput.value = '';
+                noteContentInput.value = '';
+                document.querySelector('input[name="noteColor"][value="yellow"]').checked = true;
+            }
+
+            noteContentInput.focus();
+        }
+
+        // 關閉 Modal
+        function closeModal() {
+            const modal = document.getElementById('noteModal');
+            const modalCard = document.getElementById('modalCard');
+            
+            modal.classList.add('opacity-0');
+            modalCard.classList.remove('scale-100');
+            modalCard.classList.add('scale-95');
+
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        // 儲存便利貼 (新增或更新)
+        function saveNote() {
+            const id = document.getElementById('noteId').value;
+            const content = document.getElementById('noteContent').value.trim();
+            const color = document.querySelector('input[name="noteColor"]:checked').value;
+
+            if (!content) {
+                showCustomAlert('提示', '請輸入便利貼內容！', 'warning');
+                return;
+            }
+
+            if (id) {
+                // 更新
+                notes = notes.map(note => {
+                    if (note.id === id) {
+                        return { ...note, content, color };
+                    }
+                    return note;
+                });
+            } else {
+                // 新增
+                const newNote = {
+                    id: Date.now().toString(),
+                    content,
+                    color,
+                    createdAt: Date.now()
+                };
+                notes.push(newNote);
+            }
+
+            // 儲存至 LocalStorage
+            localStorage.setItem('sticky_notes', JSON.stringify(notes));
+
+            closeModal();
+            renderNotes(document.getElementById('searchInput').value);
+        }
+
+        // 編輯便利貼
+        function editNote(id) {
+            openModal(id);
+        }
+
+        // 刪除便利貼
+        function deleteNote(id) {
+            showCustomConfirm('確認刪除', '確定要刪除這張便利貼嗎？', () => {
+                notes = notes.filter(note => note.id !== id);
+                localStorage.setItem('sticky_notes', JSON.stringify(notes));
+                renderNotes(document.getElementById('searchInput').value);
+            });
+        }
+
+        // 自訂 Alert 視窗
+        function showCustomAlert(title, message, type = 'warning') {
+            const modal = document.getElementById('customModal');
+            const modalCard = document.getElementById('customModalCard');
+            const iconEl = document.getElementById('customModalIcon');
+            const titleEl = document.getElementById('customModalTitle');
+            const msgEl = document.getElementById('customModalMessage');
+            const buttonsEl = document.getElementById('customModalButtons');
+
+            titleEl.textContent = title;
+            msgEl.textContent = message;
+
+            if (type === 'warning') {
+                iconEl.className = 'w-12 h-12 rounded-full mx-auto flex items-center justify-center text-xl mb-3 bg-amber-100 text-amber-600';
+                iconEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
+            } else {
+                iconEl.className = 'w-12 h-12 rounded-full mx-auto flex items-center justify-center text-xl mb-3 bg-sky-100 text-sky-600';
+                iconEl.innerHTML = '<i class="fa-solid fa-circle-info"></i>';
+            }
+
+            buttonsEl.innerHTML = `
+                <button onclick="closeCustomModal()" class="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2 rounded-lg text-sm font-medium transition w-full">確定</button>
+            `;
+
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modalCard.classList.remove('scale-95');
+                modalCard.classList.add('scale-100');
+            }, 10);
+        }
+
+        // 自訂 Confirm 視窗
+        function showCustomConfirm(title, message, onConfirm) {
+            const modal = document.getElementById('customModal');
+            const modalCard = document.getElementById('customModalCard');
+            const iconEl = document.getElementById('customModalIcon');
+            const titleEl = document.getElementById('customModalTitle');
+            const msgEl = document.getElementById('customModalMessage');
+            const buttonsEl = document.getElementById('customModalButtons');
+
+            titleEl.textContent = title;
+            msgEl.textContent = message;
+
+            iconEl.className = 'w-12 h-12 rounded-full mx-auto flex items-center justify-center text-xl mb-3 bg-rose-100 text-rose-600';
+            iconEl.innerHTML = '<i class="fa-solid fa-trash-can"></i>';
+
+            buttonsEl.innerHTML = `
+                <button onclick="closeCustomModal()" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 transition flex-1">取消</button>
+                <button id="confirmBtn" class="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition flex-1">確定刪除</button>
+            `;
+
+            document.getElementById('confirmBtn').onclick = () => {
+                onConfirm();
+                closeCustomModal();
+            };
+
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modalCard.classList.remove('scale-95');
+                modalCard.classList.add('scale-100');
+            }, 10);
+        }
+
+        // 關閉自訂 Modal
+        function closeCustomModal() {
+            const modal = document.getElementById('customModal');
+            const modalCard = document.getElementById('customModalCard');
+            
+            modal.classList.add('opacity-0');
+            modalCard.classList.remove('scale-100');
+            modalCard.classList.add('scale-95');
+
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        // HTML 跳脫字元防範 XSS
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+        }
+    </script>
+</body>
+</html>
